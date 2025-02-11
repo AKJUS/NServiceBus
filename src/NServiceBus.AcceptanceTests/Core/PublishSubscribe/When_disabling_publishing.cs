@@ -37,7 +37,7 @@ public class When_disabling_publishing : NServiceBusAcceptanceTest
             .Done(c => c.EndpointsStarted)
             .Run());
 
-        StringAssert.Contains("Publishing has been explicitly disabled on this endpoint", exception.Message);
+        Assert.That(exception.Message, Does.Contain("Publishing has been explicitly disabled on this endpoint"));
     }
 
     class Context : ScenarioContext
@@ -62,7 +62,7 @@ public class When_disabling_publishing : NServiceBusAcceptanceTest
                     var routingSettings = new RoutingSettings<AcceptanceTestingTransport>(c.GetSettings());
                     routingSettings.DisablePublishing();
                 },
-                pm => pm.RegisterPublisherFor<TestEvent>(typeof(MessageDrivenPublisher)));
+                pm => pm.RegisterPublisherFor<TestEvent, MessageDrivenPublisher>());
         }
 
         class EventHandler : IHandleMessages<TestEvent>

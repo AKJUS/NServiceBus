@@ -55,8 +55,11 @@ public class When_publishing_with_outbox : NServiceBusAcceptanceTest
             .Done(c => c.Subscriber1GotTheEvent && c.Subscriber2GotTheEvent)
             .Run(TimeSpan.FromSeconds(10));
 
-        Assert.True(context.Subscriber1GotTheEvent);
-        Assert.True(context.Subscriber2GotTheEvent);
+        Assert.Multiple(() =>
+        {
+            Assert.That(context.Subscriber1GotTheEvent, Is.True);
+            Assert.That(context.Subscriber2GotTheEvent, Is.True);
+        });
     }
 
     public class Context : ScenarioContext
@@ -93,7 +96,7 @@ public class When_publishing_with_outbox : NServiceBusAcceptanceTest
                     }
                 });
                 b.DisableFeature<AutoSubscribe>();
-            });
+            }, metadata => metadata.RegisterSelfAsPublisherFor<MyEvent>(this));
 
         public class TriggerHandler : IHandleMessages<TriggerMessage>
         {
@@ -121,7 +124,7 @@ public class When_publishing_with_outbox : NServiceBusAcceptanceTest
     {
         public Subscriber1() =>
             EndpointSetup<DefaultServer>(c => c.DisableFeature<AutoSubscribe>(),
-                metadata => metadata.RegisterPublisherFor<MyEvent>(typeof(Publisher)));
+                metadata => metadata.RegisterPublisherFor<MyEvent, Publisher>());
 
         public class MyHandler(Context testContext) : IHandleMessages<MyEvent>
         {
@@ -137,7 +140,7 @@ public class When_publishing_with_outbox : NServiceBusAcceptanceTest
     {
         public Subscriber2() =>
             EndpointSetup<DefaultServer>(c => c.DisableFeature<AutoSubscribe>(),
-                metadata => metadata.RegisterPublisherFor<MyEvent>(typeof(Publisher)));
+                metadata => metadata.RegisterPublisherFor<MyEvent, Publisher>());
 
         public class MyHandler(Context testContext) : IHandleMessages<MyEvent>
         {

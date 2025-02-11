@@ -1,4 +1,9 @@
-﻿namespace NServiceBus.AcceptanceTests.DataBus;
+﻿// Remove unnecessary pragmas
+#pragma warning disable IDE0079
+// Type or member is obsolete
+#pragma warning disable CS0618
+
+namespace NServiceBus.AcceptanceTests.DataBus;
 
 using System;
 using System.IO;
@@ -25,7 +30,7 @@ public class When_using_custom_IDataBus : NServiceBusAcceptanceTest
             .Done(c => c.ReceivedPayload != null)
             .Run();
 
-        Assert.AreEqual(PayloadToSend, context.ReceivedPayload, "The large payload should be marshalled correctly using the databus");
+        Assert.That(context.ReceivedPayload, Is.EqualTo(PayloadToSend), "The large payload should be marshalled correctly using the databus");
     }
 
     static byte[] PayloadToSend = new byte[1024 * 10];

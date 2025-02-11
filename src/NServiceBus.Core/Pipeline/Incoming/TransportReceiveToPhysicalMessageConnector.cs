@@ -12,19 +12,20 @@ using TransportOperation = Outbox.TransportOperation;
 
 class TransportReceiveToPhysicalMessageConnector : IStageForkConnector<ITransportReceiveContext, IIncomingPhysicalMessageContext, IBatchDispatchContext>
 {
-    public TransportReceiveToPhysicalMessageConnector(IOutboxStorage outboxStorage)
+    public TransportReceiveToPhysicalMessageConnector(IOutboxStorage outboxStorage, IncomingPipelineMetrics incomingPipelineMetrics)
     {
         this.outboxStorage = outboxStorage;
+        this.incomingPipelineMetrics = incomingPipelineMetrics;
     }
 
     public async Task Invoke(ITransportReceiveContext context, Func<IIncomingPhysicalMessageContext, Task> next)
     {
+        var processingStartedAt = DateTimeOffset.UtcNow;
         var messageId = context.Message.MessageId;
         var physicalMessageContext = this.CreateIncomingPhysicalMessageContext(context.Message, context);
 
         var deduplicationEntry = await outboxStorage.Get(messageId, context.Extensions, context.CancellationToken).ConfigureAwait(false);
         var pendingTransportOperations = new PendingTransportOperations();
-
         if (deduplicationEntry == null)
         {
             physicalMessageContext.Extensions.Set(pendingTransportOperations);
@@ -39,6 +40,9 @@ class TransportReceiveToPhysicalMessageConnector : IStageForkConnector<ITranspor
 
                 context.Extensions.Remove<IOutboxTransaction>();
                 await outboxTransaction.Commit(context.CancellationToken).ConfigureAwait(false);
+
+                var processingCompletedAt = DateTimeOffset.UtcNow;
+                incomingPipelineMetrics.RecordProcessingTime(context, processingCompletedAt - processingStartedAt);
             }
 
             physicalMessageContext.Extensions.Remove<PendingTransportOperations>();
@@ -65,6 +69,11 @@ class TransportReceiveToPhysicalMessageConnector : IStageForkConnector<ITranspor
         }
 
         await outboxStorage.SetAsDispatched(messageId, context.Extensions, context.CancellationToken).ConfigureAwait(false);
+
+        if (pendingTransportOperations.HasOperations || deduplicationEntry == null)
+        {
+            incomingPipelineMetrics.RecordCriticalTimeAndTotalProcessed(context);
+        }
     }
 
     static void ConvertToPendingOperations(OutboxMessage deduplicationEntry, PendingTransportOperations pendingTransportOperations)
@@ -116,15 +125,13 @@ class TransportReceiveToPhysicalMessageConnector : IStageForkConnector<ITranspor
 
     static AddressTag DeserializeRoutingStrategy(Dictionary<string, string> options)
     {
-        if (options.TryGetValue("Destination", out var destination))
+        if (options.Remove("Destination", out var destination))
         {
-            options.Remove("Destination");
             return new UnicastAddressTag(destination);
         }
 
-        if (options.TryGetValue("EventType", out var eventType))
+        if (options.Remove("EventType", out var eventType))
         {
-            options.Remove("EventType");
             return new MulticastAddressTag(Type.GetType(eventType, true));
         }
 
@@ -132,4 +139,5 @@ class TransportReceiveToPhysicalMessageConnector : IStageForkConnector<ITranspor
     }
 
     readonly IOutboxStorage outboxStorage;
+    readonly IncomingPipelineMetrics incomingPipelineMetrics;
 }

@@ -38,9 +38,12 @@ public class Unsub_from_event : NServiceBusAcceptanceTest
             .Done(c => c.Subscriber1ReceivedMessages >= 4)
             .Run();
 
-        Assert.AreEqual(4, context.Subscriber1ReceivedMessages);
-        Assert.AreEqual(1, context.Subscriber2ReceivedMessages);
-        Assert.IsTrue(context.Subscriber2Unsubscribed);
+        Assert.Multiple(() =>
+        {
+            Assert.That(context.Subscriber1ReceivedMessages, Is.EqualTo(4));
+            Assert.That(context.Subscriber2ReceivedMessages, Is.EqualTo(1));
+            Assert.That(context.Subscriber2Unsubscribed, Is.True);
+        });
     }
 
     public class Context : ScenarioContext
@@ -77,7 +80,7 @@ public class Unsub_from_event : NServiceBusAcceptanceTest
                         ctx.Subscriber2Unsubscribed = true;
                     }
                 });
-            });
+            }, metadata => metadata.RegisterSelfAsPublisherFor<Event>(this));
         }
     }
 
@@ -90,7 +93,7 @@ public class Unsub_from_event : NServiceBusAcceptanceTest
                    c.DisableFeature<AutoSubscribe>();
                    c.LimitMessageProcessingConcurrencyTo(1);
                },
-               metadata => metadata.RegisterPublisherFor<Event>(typeof(Publisher)));
+               metadata => metadata.RegisterPublisherFor<Event, Publisher>());
         }
 
         public class Handler : IHandleMessages<Event>
@@ -119,7 +122,7 @@ public class Unsub_from_event : NServiceBusAcceptanceTest
                     c.DisableFeature<AutoSubscribe>();
                     c.LimitMessageProcessingConcurrencyTo(1);
                 },
-                metadata => metadata.RegisterPublisherFor<Event>(typeof(Publisher)));
+                metadata => metadata.RegisterPublisherFor<Event, Publisher>());
         }
 
         public class Handler : IHandleMessages<Event>

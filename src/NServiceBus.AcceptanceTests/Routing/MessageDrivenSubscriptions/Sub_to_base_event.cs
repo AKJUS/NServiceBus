@@ -23,8 +23,11 @@ public class Sub_to_base_event : NServiceBusAcceptanceTest
             .Done(c => c.SubscriberGotBaseEvent && c.SubscriberGotSpecificEvent)
             .Run();
 
-        Assert.True(context.SubscriberGotBaseEvent);
-        Assert.True(context.SubscriberGotSpecificEvent);
+        Assert.Multiple(() =>
+        {
+            Assert.That(context.SubscriberGotBaseEvent, Is.True);
+            Assert.That(context.SubscriberGotSpecificEvent, Is.True);
+        });
     }
 
     public class Context : ScenarioContext
@@ -38,7 +41,13 @@ public class Sub_to_base_event : NServiceBusAcceptanceTest
     {
         public Publisher()
         {
-            EndpointSetup<DefaultPublisher>(b => b.OnEndpointSubscribed<Context>((args, context) => { context.SubscriberSubscribed = true; }));
+            EndpointSetup<DefaultPublisher>(b =>
+                b.OnEndpointSubscribed<Context>((args, context) => { context.SubscriberSubscribed = true; }),
+                metadata =>
+                {
+                    metadata.RegisterSelfAsPublisherFor<SpecificEvent>(this);
+                    metadata.RegisterSelfAsPublisherFor<IBaseEvent>(this);
+                });
         }
     }
 
@@ -46,8 +55,8 @@ public class Sub_to_base_event : NServiceBusAcceptanceTest
     {
         public GeneralSubscriber()
         {
-            EndpointSetup<DefaultServer>(c => { c.DisableFeature<AutoSubscribe>(); },
-                metadata => metadata.RegisterPublisherFor<IBaseEvent>(typeof(Publisher)));
+            EndpointSetup<DefaultServer>(c => c.DisableFeature<AutoSubscribe>(),
+                metadata => metadata.RegisterPublisherFor<IBaseEvent, Publisher>());
         }
 
         public class MyHandler : IHandleMessages<IBaseEvent>

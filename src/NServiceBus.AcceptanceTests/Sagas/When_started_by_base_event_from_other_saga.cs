@@ -31,7 +31,7 @@ public class When_started_by_base_event_from_other_saga : NServiceBusAcceptanceT
             .Done(c => c.DidSagaComplete)
             .Run();
 
-        Assert.True(context.DidSagaComplete);
+        Assert.That(context.DidSagaComplete, Is.True);
     }
 
     public class SagaContext : ScenarioContext
@@ -48,7 +48,7 @@ public class When_started_by_base_event_from_other_saga : NServiceBusAcceptanceT
             {
                 context.AddTrace($"Subscription received for {s.SubscriberEndpoint}");
                 context.IsEventSubscriptionReceived = true;
-            }));
+            }), metadata => metadata.RegisterSelfAsPublisherFor<ISomethingHappenedEvent>(this));
         }
     }
 
@@ -60,7 +60,7 @@ public class When_started_by_base_event_from_other_saga : NServiceBusAcceptanceT
             {
                 c.DisableFeature<AutoSubscribe>();
             },
-            metadata => metadata.RegisterPublisherFor<IBaseEvent>(typeof(Publisher)));
+            metadata => metadata.RegisterPublisherFor<IBaseEvent, Publisher>());
         }
 
         public class SagaStartedByBaseEvent : Saga<SagaStartedByBaseEvent.SagaStartedByBaseEventSagaData>, IAmStartedByMessages<IBaseEvent>

@@ -49,9 +49,12 @@ public class When_unsubscribing_from_event : NServiceBusAcceptanceTest
             .Done(c => c.Subscriber1ReceivedMessages >= 4)
             .Run();
 
-        Assert.AreEqual(4, context.Subscriber1ReceivedMessages);
-        Assert.AreEqual(1, context.Subscriber2ReceivedMessages);
-        Assert.IsTrue(context.Subscriber2Unsubscribed);
+        Assert.Multiple(() =>
+        {
+            Assert.That(context.Subscriber1ReceivedMessages, Is.EqualTo(4));
+            Assert.That(context.Subscriber2ReceivedMessages, Is.EqualTo(1));
+            Assert.That(context.Subscriber2Unsubscribed, Is.True);
+        });
     }
 
     public class Context : ScenarioContext
@@ -67,7 +70,7 @@ public class When_unsubscribing_from_event : NServiceBusAcceptanceTest
     {
         public Publisher()
         {
-            EndpointSetup<DefaultServer>();
+            EndpointSetup<DefaultServer>(_ => { }, metadata => metadata.RegisterSelfAsPublisherFor<Event>(this));
         }
     }
 
@@ -75,7 +78,8 @@ public class When_unsubscribing_from_event : NServiceBusAcceptanceTest
     {
         public Subscriber1()
         {
-            EndpointSetup<DefaultServer>(c => { c.DisableFeature<AutoSubscribe>(); });
+            EndpointSetup<DefaultServer>(c => { c.DisableFeature<AutoSubscribe>(); },
+                metadata => metadata.RegisterPublisherFor<Event, Publisher>());
         }
 
         public class Handler : IHandleMessages<Event>
@@ -100,7 +104,7 @@ public class When_unsubscribing_from_event : NServiceBusAcceptanceTest
     {
         public Subscriber2()
         {
-            EndpointSetup<DefaultServer>(c => { c.DisableFeature<AutoSubscribe>(); });
+            EndpointSetup<DefaultServer>(c => { c.DisableFeature<AutoSubscribe>(); }, metadata => metadata.RegisterPublisherFor<Event, Publisher>());
         }
 
         public class Handler : IHandleMessages<Event>

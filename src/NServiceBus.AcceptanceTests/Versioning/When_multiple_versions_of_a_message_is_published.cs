@@ -41,8 +41,11 @@ public class When_multiple_versions_of_a_message_is_published : NServiceBusAccep
             .Done(c => c.V1SubscriberGotTheMessage && c.V2SubscriberGotTheMessage)
             .Run();
 
-        Assert.True(context.V1SubscriberGotTheMessage);
-        Assert.True(context.V2SubscriberGotTheMessage);
+        Assert.Multiple(() =>
+        {
+            Assert.That(context.V1SubscriberGotTheMessage, Is.True);
+            Assert.That(context.V2SubscriberGotTheMessage, Is.True);
+        });
     }
 
     public class Context : ScenarioContext
@@ -71,7 +74,7 @@ public class When_multiple_versions_of_a_message_is_published : NServiceBusAccep
                 {
                     context.V2Subscribed = true;
                 }
-            }));
+            }), metadata => metadata.RegisterSelfAsPublisherFor<V2Event>(this));
         }
     }
 
@@ -80,7 +83,7 @@ public class When_multiple_versions_of_a_message_is_published : NServiceBusAccep
         public V1Subscriber()
         {
             EndpointSetup<DefaultServer>(b => b.DisableFeature<AutoSubscribe>(),
-                metadata => metadata.RegisterPublisherFor<V1Event>(typeof(V2Publisher)))
+                metadata => metadata.RegisterPublisherFor<V1Event, V2Publisher>())
                 .ExcludeType<V2Event>();
         }
 
@@ -106,7 +109,7 @@ public class When_multiple_versions_of_a_message_is_published : NServiceBusAccep
         public V2Subscriber()
         {
             EndpointSetup<DefaultServer>(b => b.DisableFeature<AutoSubscribe>(),
-                 metadata => metadata.RegisterPublisherFor<V2Event>(typeof(V2Publisher)));
+                 metadata => metadata.RegisterPublisherFor<V2Event, V2Publisher>());
         }
 
         class V2Handler : IHandleMessages<V2Event>

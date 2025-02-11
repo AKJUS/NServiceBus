@@ -19,8 +19,11 @@ public class When_registering_publishers_unobtrusive_messages_config : NServiceB
             .Done(c => c.ReceivedMessage)
             .Run();
 
-        Assert.That(context.Subscribed, Is.True);
-        Assert.That(context.ReceivedMessage, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(context.Subscribed, Is.True);
+            Assert.That(context.ReceivedMessage, Is.True);
+        });
     }
 
     public class Context : ScenarioContext
@@ -37,7 +40,7 @@ public class When_registering_publishers_unobtrusive_messages_config : NServiceB
             {
                 c.OnEndpointSubscribed<Context>((e, ctx) => ctx.Subscribed = true);
                 c.Conventions().DefiningEventsAs(t => t == typeof(SomeEvent));
-            }).ExcludeType<SomeEvent>();
+            }, metadata => metadata.RegisterSelfAsPublisherFor<SomeEvent>(this)).ExcludeType<SomeEvent>();
         }
     }
 
@@ -46,7 +49,7 @@ public class When_registering_publishers_unobtrusive_messages_config : NServiceB
         public Subscriber()
         {
             EndpointSetup<DefaultServer>(c => c.Conventions().DefiningEventsAs(t => t == typeof(SomeEvent)),
-            metadata => metadata.RegisterPublisherFor<SomeEvent>(typeof(Publisher)));
+            metadata => metadata.RegisterPublisherFor<SomeEvent, Publisher>());
         }
 
         public class Handler : IHandleMessages<SomeEvent>

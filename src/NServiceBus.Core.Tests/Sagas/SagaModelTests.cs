@@ -25,7 +25,7 @@ public class SagaModelTests
         var metadata = model.Find(typeof(MySaga));
 
 
-        Assert.NotNull(metadata);
+        Assert.That(metadata, Is.Not.Null);
     }
 
     [Test]
@@ -36,7 +36,18 @@ public class SagaModelTests
         var metadata = model.FindByEntity(typeof(MyEntity));
 
 
-        Assert.NotNull(metadata);
+        Assert.That(metadata, Is.Not.Null);
+    }
+
+    [Test]
+    public void FindSagasByPartialEntityName()
+    {
+        var model = GetModel(typeof(MySaga3));
+
+        var metadata = model.FindByEntity(typeof(MyPartialEntity));
+
+
+        Assert.That(metadata, Is.Not.Null);
     }
 
     [Test]
@@ -46,23 +57,32 @@ public class SagaModelTests
 
         var metadata = model.Find(typeof(MySaga));
 
-        Assert.NotNull(metadata);
+        Assert.That(metadata, Is.Not.Null);
 
-        Assert.AreEqual(typeof(MyEntity), metadata.SagaEntityType);
-        Assert.AreEqual(typeof(MyEntity).FullName, metadata.EntityName);
-        Assert.AreEqual(typeof(MySaga), metadata.SagaType);
-        Assert.AreEqual(typeof(MySaga).FullName, metadata.Name);
+        Assert.Multiple(() =>
+        {
+            Assert.That(metadata.SagaEntityType, Is.EqualTo(typeof(MyEntity)));
+            Assert.That(metadata.EntityName, Is.EqualTo(typeof(MyEntity).FullName));
+            Assert.That(metadata.SagaType, Is.EqualTo(typeof(MySaga)));
+            Assert.That(metadata.Name, Is.EqualTo(typeof(MySaga).FullName));
 
-        Assert.AreEqual(2, metadata.AssociatedMessages.Count);
-        Assert.AreEqual(1, metadata.AssociatedMessages.Count(am => am.MessageTypeName == typeof(Message1).FullName && am.IsAllowedToStartSaga));
-        Assert.AreEqual(1, metadata.AssociatedMessages.Count(am => am.MessageTypeName == typeof(Message2).FullName && !am.IsAllowedToStartSaga));
+            Assert.That(metadata.AssociatedMessages.Count, Is.EqualTo(2));
+        });
+        Assert.Multiple(() =>
+        {
+            Assert.That(metadata.AssociatedMessages.Count(am => am.MessageTypeName == typeof(Message1).FullName && am.IsAllowedToStartSaga), Is.EqualTo(1));
+            Assert.That(metadata.AssociatedMessages.Count(am => am.MessageTypeName == typeof(Message2).FullName && !am.IsAllowedToStartSaga), Is.EqualTo(1));
 
-        Assert.True(metadata.TryGetCorrelationProperty(out var correlatedProperty));
-        Assert.AreEqual("UniqueProperty", correlatedProperty.Name);
+            Assert.That(metadata.TryGetCorrelationProperty(out var correlatedProperty), Is.True);
+            Assert.That(correlatedProperty.Name, Is.EqualTo("UniqueProperty"));
 
-        Assert.AreEqual(2, metadata.Finders.Count);
-        Assert.AreEqual(1, metadata.Finders.Count(f => f.MessageType == typeof(Message1)));
-        Assert.AreEqual(1, metadata.Finders.Count(f => f.MessageType == typeof(Message2)));
+            Assert.That(metadata.Finders.Count, Is.EqualTo(2));
+        });
+        Assert.Multiple(() =>
+        {
+            Assert.That(metadata.Finders.Count(f => f.MessageType == typeof(Message1)), Is.EqualTo(1));
+            Assert.That(metadata.Finders.Count(f => f.MessageType == typeof(Message2)), Is.EqualTo(1));
+        });
     }
 
     [Test]
@@ -80,8 +100,11 @@ public class SagaModelTests
 
         var metadata = model.Find(typeof(MyHeaderMappedSaga));
 
-        Assert.That(metadata.TryGetCorrelationProperty(out var correlatedProperty), Is.True);
-        Assert.That(correlatedProperty.Name, Is.EqualTo("UniqueProperty"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(metadata.TryGetCorrelationProperty(out var correlatedProperty), Is.True);
+            Assert.That(correlatedProperty.Name, Is.EqualTo("UniqueProperty"));
+        });
     }
 
     [Test]
@@ -93,7 +116,7 @@ public class SagaModelTests
 
         const string expectedExceptionMessage = "Best practice violation: Multiple saga types are sharing the same saga state which can result in persisters to physically share the same storage structure.\n\n- Entity 'NServiceBus.Core.Tests.Sagas.TypeBasedSagas.SagaModelTests+MyEntity' used by saga types 'NServiceBus.Core.Tests.Sagas.TypeBasedSagas.SagaModelTests+MySaga' and 'NServiceBus.Core.Tests.Sagas.TypeBasedSagas.SagaModelTests+MySaga2'.";
 
-        Assert.AreEqual(expectedExceptionMessage, ex.Message);
+        Assert.That(ex.Message, Is.EqualTo(expectedExceptionMessage));
     }
 
     class MyHeaderMappedSaga : Saga<MyHeaderMappedSaga.SagaData>, IAmStartedByMessages<Message1>
@@ -138,6 +161,8 @@ public class SagaModelTests
         public int UniqueProperty { get; set; }
     }
 
+
+
     public class MyEntity2 : MyEntity
     {
 
@@ -162,6 +187,26 @@ public class SagaModelTests
         }
     }
 
+
+    class MySaga3 : Saga<MyPartialEntity>, IAmStartedByMessages<Message1>, IHandleMessages<Message2>
+    {
+        public Task Handle(Message1 message, IMessageHandlerContext context)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task Handle(Message2 message, IMessageHandlerContext context)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void ConfigureHowToFindSaga(SagaPropertyMapper<MyPartialEntity> mapper)
+        {
+            mapper.ConfigureMapping<Message1>(m => m.UniqueProperty).ToSaga(s => s.UniqueProperty);
+            mapper.ConfigureMapping<Message2>(m => m.UniqueProperty).ToSaga(s => s.UniqueProperty);
+        }
+    }
+
     abstract class AbstractSaga : Saga<MyEntity>, IAmStartedByMessages<Message1>
     {
         public abstract Task Handle(Message1 message, IMessageHandlerContext context);
@@ -180,4 +225,5 @@ public class SagaModelTests
     {
         public int UniqueProperty { get; set; }
     }
+
 }

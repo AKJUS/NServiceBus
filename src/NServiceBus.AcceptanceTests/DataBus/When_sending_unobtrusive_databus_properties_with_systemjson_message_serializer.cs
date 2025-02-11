@@ -1,4 +1,9 @@
-﻿namespace NServiceBus.AcceptanceTests.DataBus;
+﻿// Remove unnecessary pragmas
+#pragma warning disable IDE0079
+// Type or member is obsolete
+#pragma warning disable CS0618
+
+namespace NServiceBus.AcceptanceTests.DataBus;
 
 using System;
 using System.IO;
@@ -25,7 +30,7 @@ public class When_sending_unobtrusive_databus_properties_with_systemjson_message
             .Done(c => c.ReceivedPayload != null)
             .Run();
 
-        Assert.AreEqual(payloadToSend, context.ReceivedPayload, "The large payload should be marshalled correctly using the databus");
+        Assert.That(context.ReceivedPayload, Is.EqualTo(payloadToSend), "The large payload should be marshalled correctly using the databus");
     }
 
     const int PayloadSize = 500;

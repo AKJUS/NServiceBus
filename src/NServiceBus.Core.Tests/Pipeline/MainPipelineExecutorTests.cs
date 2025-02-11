@@ -7,6 +7,7 @@ using Extensibility;
 using Microsoft.Extensions.DependencyInjection;
 using NServiceBus.Pipeline;
 using NUnit.Framework;
+using OpenTelemetry;
 using OpenTelemetry.Helpers;
 using Transport;
 
@@ -24,7 +25,7 @@ public class MainPipelineExecutorTests
         messageContext.Extensions.Set("existing value", existingValue);
         await executor.Invoke(messageContext);
 
-        Assert.AreEqual(existingValue, receivePipeline.LastContext.Extensions.Get<Guid>("existing value"));
+        Assert.That(receivePipeline.LastContext.Extensions.Get<Guid>("existing value"), Is.EqualTo(existingValue));
     }
 
     [Test]
@@ -41,7 +42,7 @@ public class MainPipelineExecutorTests
 
         await executor.Invoke(messageContext);
 
-        Assert.AreEqual(newValue, messageContext.Extensions.Get<Guid>("new value"));
+        Assert.That(messageContext.Extensions.Get<Guid>("new value"), Is.EqualTo(newValue));
     }
 
     class When_activity_listener_registered
@@ -69,10 +70,13 @@ public class MainPipelineExecutorTests
 
             await executor.Invoke(messageContext);
 
-            Assert.NotNull(receivePipeline.PipelineAcitivty);
-            Assert.AreEqual(ActivityNames.IncomingMessageActivityName, receivePipeline.PipelineAcitivty.OperationName);
-            Assert.AreEqual("process message", receivePipeline.PipelineAcitivty.DisplayName);
-            Assert.AreEqual(receivePipeline.PipelineAcitivty, receivePipeline.TransportReceiveContext.Extensions.Get<Activity>(ActivityExtensions.IncomingActivityKey));
+            Assert.That(receivePipeline.PipelineAcitivty, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(receivePipeline.PipelineAcitivty.OperationName, Is.EqualTo(ActivityNames.IncomingMessageActivityName));
+                Assert.That(receivePipeline.PipelineAcitivty.DisplayName, Is.EqualTo("process message"));
+                Assert.That(receivePipeline.TransportReceiveContext.Extensions.Get<Activity>(ActivityExtensions.IncomingActivityKey), Is.EqualTo(receivePipeline.PipelineAcitivty));
+            });
         }
 
         [Test]
@@ -83,7 +87,7 @@ public class MainPipelineExecutorTests
 
             await executor.Invoke(CreateMessageContext());
 
-            Assert.AreEqual(ActivityStatusCode.Ok, receivePipeline.PipelineAcitivty.Status);
+            Assert.That(receivePipeline.PipelineAcitivty.Status, Is.EqualTo(ActivityStatusCode.Ok));
         }
 
         [Test]
@@ -95,7 +99,7 @@ public class MainPipelineExecutorTests
 
             Assert.ThrowsAsync<Exception>(async () => await executor.Invoke(CreateMessageContext()));
 
-            Assert.AreEqual(ActivityStatusCode.Error, receivePipeline.PipelineAcitivty.Status);
+            Assert.That(receivePipeline.PipelineAcitivty.Status, Is.EqualTo(ActivityStatusCode.Error));
         }
     }
 
@@ -118,7 +122,8 @@ public class MainPipelineExecutorTests
             new TestableMessageOperations(),
             new Notification<ReceivePipelineCompleted>(),
             receivePipeline,
-            new ActivityFactory());
+            new ActivityFactory(),
+            new IncomingPipelineMetrics(new TestMeterFactory(), "queue", "disc"));
 
         return executor;
     }

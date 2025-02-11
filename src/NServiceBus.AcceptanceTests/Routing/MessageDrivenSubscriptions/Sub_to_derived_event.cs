@@ -24,7 +24,7 @@ public class Sub_to_derived_event : NServiceBusAcceptanceTest
             .Done(c => c.Done)
             .Run();
 
-        Assert.IsFalse(context.SubscriberGotEvent);
+        Assert.That(context.SubscriberGotEvent, Is.False);
     }
 
     public class Context : ScenarioContext
@@ -47,7 +47,7 @@ public class Sub_to_derived_event : NServiceBusAcceptanceTest
                     context.SubscriberSubscribed = true;
                 });
                 b.ConfigureRouting().RouteToEndpoint(typeof(Done), typeof(Subscriber));
-            });
+            }, metadata => metadata.RegisterSelfAsPublisherFor<IBaseEvent>(this));
         }
     }
 
@@ -60,7 +60,7 @@ public class Sub_to_derived_event : NServiceBusAcceptanceTest
                 c.DisableFeature<AutoSubscribe>();
                 c.LimitMessageProcessingConcurrencyTo(1); //To ensure Done is processed after the event.
             },
-            metadata => metadata.RegisterPublisherFor<SpecificEvent>(typeof(Publisher)));
+            metadata => metadata.RegisterPublisherFor<SpecificEvent, Publisher>());
         }
 
         public class MyHandler : IHandleMessages<SpecificEvent>

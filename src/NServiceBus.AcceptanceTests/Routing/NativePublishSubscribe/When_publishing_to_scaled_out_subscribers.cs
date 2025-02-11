@@ -23,8 +23,11 @@ public class When_publishing_to_scaled_out_subscribers : NServiceBusAcceptanceTe
             .Done(c => c.SubscriberACounter > 0 && c.SubscriberBCounter > 0)
             .Run();
 
-        Assert.AreEqual(1, context.SubscriberACounter);
-        Assert.AreEqual(1, context.SubscriberBCounter);
+        Assert.Multiple(() =>
+        {
+            Assert.That(context.SubscriberACounter, Is.EqualTo(1));
+            Assert.That(context.SubscriberBCounter, Is.EqualTo(1));
+        });
     }
 
     public class Context : ScenarioContext
@@ -51,7 +54,7 @@ public class When_publishing_to_scaled_out_subscribers : NServiceBusAcceptanceTe
     {
         public Publisher()
         {
-            EndpointSetup<DefaultServer>();
+            EndpointSetup<DefaultServer>(_ => { }, metadata => metadata.RegisterSelfAsPublisherFor<MyEvent>(this));
         }
     }
 
@@ -59,7 +62,7 @@ public class When_publishing_to_scaled_out_subscribers : NServiceBusAcceptanceTe
     {
         public SubscriberA()
         {
-            EndpointSetup<DefaultServer>();
+            EndpointSetup<DefaultServer>(_ => { }, metadata => metadata.RegisterPublisherFor<MyEvent, Publisher>());
         }
 
         public class MyHandler : IHandleMessages<MyEvent>
@@ -83,7 +86,7 @@ public class When_publishing_to_scaled_out_subscribers : NServiceBusAcceptanceTe
     {
         public SubscriberB()
         {
-            EndpointSetup<DefaultServer>();
+            EndpointSetup<DefaultServer>(_ => { }, metadata => metadata.RegisterPublisherFor<MyEvent, Publisher>());
         }
 
         public class MyHandler : IHandleMessages<MyEvent>

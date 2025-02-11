@@ -40,7 +40,7 @@ public class When_extending_the_publish_api : NServiceBusAcceptanceTest
             .Done(c => c.Subscriber1GotTheEvent)
             .Run();
 
-        Assert.True(context.Subscriber1GotTheEvent);
+        Assert.That(context.Subscriber1GotTheEvent, Is.True);
     }
 
     public class Context : ScenarioContext
@@ -67,7 +67,7 @@ public class When_extending_the_publish_api : NServiceBusAcceptanceTest
             {
                 if (context.Extensions.TryGet(out Context data))
                 {
-                    Assert.AreEqual("ItWorks", data.SomeProperty);
+                    Assert.That(data.SomeProperty, Is.EqualTo("ItWorks"));
                 }
                 else
                 {
@@ -88,7 +88,7 @@ public class When_extending_the_publish_api : NServiceBusAcceptanceTest
     {
         public Subscriber1()
         {
-            EndpointSetup<DefaultServer>(builder => builder.DisableFeature<AutoSubscribe>(), metadata => metadata.RegisterPublisherFor<MyEvent>(typeof(Publisher)));
+            EndpointSetup<DefaultServer>(builder => builder.DisableFeature<AutoSubscribe>(), metadata => metadata.RegisterPublisherFor<MyEvent, Publisher>());
         }
 
         public class MyHandler : IHandleMessages<MyEvent>

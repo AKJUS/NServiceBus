@@ -28,8 +28,11 @@ public class When_publishing_an_interface : NServiceBusAcceptanceTest
             .Done(c => c.GotTheEvent)
             .Run();
 
-        Assert.True(context.GotTheEvent);
-        Assert.AreEqual(typeof(IMyEvent), context.EventTypePassedToRouting);
+        Assert.Multiple(() =>
+        {
+            Assert.That(context.GotTheEvent, Is.True);
+            Assert.That(context.EventTypePassedToRouting, Is.EqualTo(typeof(IMyEvent)));
+        });
     }
 
     public class Context : ScenarioContext
@@ -53,7 +56,7 @@ public class When_publishing_an_interface : NServiceBusAcceptanceTest
                         context.Subscribed = true;
                     }
                 });
-            });
+            }, metadata => metadata.RegisterSelfAsPublisherFor<IMyEvent>(this));
         }
 
         class EventTypeSpy : IBehavior<IOutgoingLogicalMessageContext, IOutgoingLogicalMessageContext>
@@ -81,7 +84,7 @@ public class When_publishing_an_interface : NServiceBusAcceptanceTest
                 {
                     c.DisableFeature<AutoSubscribe>();
                 },
-                metadata => metadata.RegisterPublisherFor<IMyEvent>(typeof(Publisher)));
+                metadata => metadata.RegisterPublisherFor<IMyEvent, Publisher>());
         }
 
         public class MyHandler : IHandleMessages<IMyEvent>

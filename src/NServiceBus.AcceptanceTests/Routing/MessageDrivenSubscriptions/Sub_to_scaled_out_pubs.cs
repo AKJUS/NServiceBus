@@ -1,7 +1,6 @@
 ﻿namespace NServiceBus.AcceptanceTests.Routing.MessageDrivenSubscriptions;
 
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using AcceptanceTesting;
 using AcceptanceTesting.Customization;
@@ -27,7 +26,7 @@ public class Sub_to_scaled_out_pubs : NServiceBusAcceptanceTest
         // each instance should receive a subscription message
         Assert.That(context.PublisherReceivedSubscription, Does.Contain("1"));
         Assert.That(context.PublisherReceivedSubscription, Does.Contain("2"));
-        Assert.That(context.PublisherReceivedSubscription.Count, Is.EqualTo(2));
+        Assert.That(context.PublisherReceivedSubscription, Has.Count.EqualTo(2));
     }
 
     class Context : ScenarioContext
@@ -60,7 +59,7 @@ public class Sub_to_scaled_out_pubs : NServiceBusAcceptanceTest
                         new EndpointInstance(publisherName, "2")
                     ]);
                 },
-                metadata => metadata.RegisterPublisherFor<MyEvent>(typeof(ScaledOutPublisher)));
+                metadata => metadata.RegisterPublisherFor<MyEvent, ScaledOutPublisher>());
         }
     }
 

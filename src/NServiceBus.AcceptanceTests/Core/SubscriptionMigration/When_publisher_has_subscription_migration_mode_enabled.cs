@@ -18,8 +18,11 @@ public class When_publisher_has_subscription_migration_mode_enabled : NServiceBu
             .Done(c => c.EventReceived)
             .Run();
 
-        Assert.IsTrue(context.EventReceived);
-        Assert.AreEqual(Conventions.EndpointNamingConvention(typeof(MessageDrivenSubscriber)), context.Subscriber);
+        Assert.Multiple(() =>
+        {
+            Assert.That(context.EventReceived, Is.True);
+            Assert.That(context.Subscriber, Is.EqualTo(Conventions.EndpointNamingConvention(typeof(MessageDrivenSubscriber))));
+        });
     }
 
     [Test]
@@ -32,7 +35,7 @@ public class When_publisher_has_subscription_migration_mode_enabled : NServiceBu
             .Done(c => c.EventReceived)
             .Run();
 
-        Assert.IsTrue(context.EventReceived);
+        Assert.That(context.EventReceived, Is.True);
     }
 
     class Context : ScenarioContext
@@ -45,7 +48,7 @@ public class When_publisher_has_subscription_migration_mode_enabled : NServiceBu
     {
         public MessageDrivenSubscriber()
         {
-            EndpointSetup<EndpointWithMessageDrivenPubSub>(_ => { }, p => p.RegisterPublisherFor<SomeEvent>(typeof(MigratedPublisher)));
+            EndpointSetup<EndpointWithMessageDrivenPubSub>(_ => { }, p => p.RegisterPublisherFor<SomeEvent, MigratedPublisher>());
         }
 
         class SomeEventHandler : IHandleMessages<SomeEvent>

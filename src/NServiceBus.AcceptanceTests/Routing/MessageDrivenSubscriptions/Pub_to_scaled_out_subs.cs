@@ -22,8 +22,11 @@ public class Pub_to_scaled_out_subs : NServiceBusAcceptanceTest
             .Done(c => c.ProcessedByA > 0 && c.ProcessedByB > 0)
             .Run();
 
-        Assert.AreEqual(1, context.ProcessedByA);
-        Assert.AreEqual(1, context.ProcessedByB);
+        Assert.Multiple(() =>
+        {
+            Assert.That(context.ProcessedByA, Is.EqualTo(1));
+            Assert.That(context.ProcessedByB, Is.EqualTo(1));
+        });
 
     }
 
@@ -59,7 +62,10 @@ public class Pub_to_scaled_out_subs : NServiceBusAcceptanceTest
     {
         public Publisher()
         {
-            EndpointSetup<DefaultServer>(c => { c.OnEndpointSubscribed<Context>((s, context) => { context.IncrementSubscribersCounter(); }); });
+            EndpointSetup<DefaultServer>(c =>
+            {
+                c.OnEndpointSubscribed<Context>((s, context) => { context.IncrementSubscribersCounter(); });
+            }, metadata => metadata.RegisterSelfAsPublisherFor<MyEvent>(this));
         }
     }
 
@@ -67,7 +73,7 @@ public class Pub_to_scaled_out_subs : NServiceBusAcceptanceTest
     {
         public SubscriberA()
         {
-            EndpointSetup<DefaultServer>(publisherMetadata: metadata => metadata.RegisterPublisherFor<MyEvent>(typeof(Publisher)));
+            EndpointSetup<DefaultServer>(publisherMetadata: metadata => metadata.RegisterPublisherFor<MyEvent, Publisher>());
         }
 
         public class MyHandler : IHandleMessages<MyEvent>
@@ -91,7 +97,7 @@ public class Pub_to_scaled_out_subs : NServiceBusAcceptanceTest
     {
         public SubscriberB()
         {
-            EndpointSetup<DefaultServer>(publisherMetadata: metadata => metadata.RegisterPublisherFor<MyEvent>(typeof(Publisher)));
+            EndpointSetup<DefaultServer>(publisherMetadata: metadata => metadata.RegisterPublisherFor<MyEvent, Publisher>());
         }
 
         public class MyHandler : IHandleMessages<MyEvent>

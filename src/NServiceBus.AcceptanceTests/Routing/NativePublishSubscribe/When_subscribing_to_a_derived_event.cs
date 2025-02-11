@@ -28,7 +28,7 @@ public class When_subscribing_to_a_derived_event : NServiceBusAcceptanceTest
             .Done(c => c.Done)
             .Run();
 
-        Assert.IsFalse(context.SubscriberGotEvent);
+        Assert.That(context.SubscriberGotEvent, Is.False);
     }
 
     public class Context : ScenarioContext
@@ -45,7 +45,8 @@ public class When_subscribing_to_a_derived_event : NServiceBusAcceptanceTest
         public Publisher()
         {
             EndpointSetup<DefaultPublisher>(b =>
-                b.ConfigureRouting().RouteToEndpoint(typeof(Done), typeof(Subscriber)));
+                b.ConfigureRouting().RouteToEndpoint(typeof(Done), typeof(Subscriber)),
+                metadata => metadata.RegisterSelfAsPublisherFor<IBaseEvent>(this));
         }
     }
 
@@ -57,7 +58,7 @@ public class When_subscribing_to_a_derived_event : NServiceBusAcceptanceTest
             {
                 c.DisableFeature<AutoSubscribe>();
                 c.LimitMessageProcessingConcurrencyTo(1); //To ensure Done is processed after the event.
-            });
+            }, metadata => metadata.RegisterPublisherFor<SpecificEvent, Publisher>());
         }
 
         public class MyHandler : IHandleMessages<SpecificEvent>

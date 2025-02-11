@@ -27,8 +27,11 @@ public class MultiSubscribeToPolymorphicEvent : NServiceBusAcceptanceTest
             .Done(c => c.SubscriberGotIMyEvent && c.SubscriberGotMyEvent2)
             .Run();
 
-        Assert.True(context.SubscriberGotIMyEvent);
-        Assert.True(context.SubscriberGotMyEvent2);
+        Assert.Multiple(() =>
+        {
+            Assert.That(context.SubscriberGotIMyEvent, Is.True);
+            Assert.That(context.SubscriberGotMyEvent2, Is.True);
+        });
     }
 
     public class Context : ScenarioContext
@@ -41,7 +44,7 @@ public class MultiSubscribeToPolymorphicEvent : NServiceBusAcceptanceTest
     {
         public Publisher1()
         {
-            EndpointSetup<DefaultPublisher>();
+            EndpointSetup<DefaultPublisher>(_ => { }, metadata => metadata.RegisterSelfAsPublisherFor<MyEvent1>(this));
         }
     }
 
@@ -49,7 +52,7 @@ public class MultiSubscribeToPolymorphicEvent : NServiceBusAcceptanceTest
     {
         public Publisher2()
         {
-            EndpointSetup<DefaultPublisher>();
+            EndpointSetup<DefaultPublisher>(_ => { }, metadata => metadata.RegisterSelfAsPublisherFor<MyEvent2>(this));
         }
     }
 
@@ -57,7 +60,11 @@ public class MultiSubscribeToPolymorphicEvent : NServiceBusAcceptanceTest
     {
         public Subscriber()
         {
-            EndpointSetup<DefaultServer>();
+            EndpointSetup<DefaultServer>(_ => { }, metadata =>
+            {
+                metadata.RegisterPublisherFor<IMyEvent, Publisher1>();
+                metadata.RegisterPublisherFor<IMyEvent, Publisher2>();
+            });
         }
 
         public class MyHandler : IHandleMessages<IMyEvent>

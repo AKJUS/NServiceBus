@@ -23,7 +23,7 @@ public class When_subscribing_in_FST : NServiceBusAcceptanceTest
             .Done(c => c.LocalEventReceived)
             .Run();
 
-        Assert.IsTrue(context.LocalEventReceived);
+        Assert.That(context.LocalEventReceived, Is.True);
     }
 
     [Test]
@@ -37,7 +37,7 @@ public class When_subscribing_in_FST : NServiceBusAcceptanceTest
             .Done(c => c.LocalEventReceived)
             .Run();
 
-        Assert.IsTrue(context.LocalEventReceived);
+        Assert.That(context.LocalEventReceived, Is.True);
     }
 
     class Context : ScenarioContext
@@ -62,7 +62,7 @@ public class When_subscribing_in_FST : NServiceBusAcceptanceTest
                         }
                     });
                 },
-                p => p.RegisterPublisherFor<LocalEvent>(typeof(EndpointWithStartupTask)));
+                p => p.RegisterPublisherFor<LocalEvent, EndpointWithStartupTask>());
         }
 
         class MessageHandler : IHandleMessages<LocalEvent>

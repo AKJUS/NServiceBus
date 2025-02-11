@@ -33,7 +33,7 @@ public class When_publishing_using_base_type : NServiceBusAcceptanceTest
             .Done(c => c.Subscriber1GotTheEvent)
             .Run(TimeSpan.FromSeconds(20));
 
-        Assert.True(context.Subscriber1GotTheEvent);
+        Assert.That(context.Subscriber1GotTheEvent, Is.True);
     }
 
     public class Context : ScenarioContext
@@ -52,7 +52,7 @@ public class When_publishing_using_base_type : NServiceBusAcceptanceTest
                 {
                     context.Subscriber1Subscribed = true;
                 }
-            }));
+            }), metadata => metadata.RegisterSelfAsPublisherFor<EventMessage>(this));
         }
     }
 
@@ -60,7 +60,7 @@ public class When_publishing_using_base_type : NServiceBusAcceptanceTest
     {
         public Subscriber1()
         {
-            EndpointSetup<DefaultServer>(c => c.DisableFeature<AutoSubscribe>(), p => p.RegisterPublisherFor<EventMessage>(typeof(Publisher)));
+            EndpointSetup<DefaultServer>(c => c.DisableFeature<AutoSubscribe>(), p => p.RegisterPublisherFor<EventMessage, Publisher>());
         }
 
         public class MyHandler : IHandleMessages<EventMessage>

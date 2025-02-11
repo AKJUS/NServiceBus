@@ -44,6 +44,8 @@ partial class HostingComponent
 
         public string EndpointName => settings.EndpointName();
 
+        public string Discriminator => settings.GetOrDefault<string>("EndpointInstanceDiscriminator");
+
         public Dictionary<string, string> Properties
         {
             get { return settings.Get<Dictionary<string, string>>(PropertiesSettingsKey); }
@@ -100,6 +102,14 @@ partial class HostingComponent
             }
 
             settings.Set(HostIdSettingsKey, DeterministicGuid.Create(fullPathToStartingExe, RuntimeEnvironment.MachineName));
+        }
+
+        internal void UpdateHost(string hostName)
+        {
+            RuntimeEnvironment.SetMachineName(hostName);
+            settings.Set(HostIdSettingsKey, DeterministicGuid.Create(fullPathToStartingExe, hostName));
+            Properties["Machine"] = hostName;
+            settings.SetDefault(DisplayNameSettingsKey, hostName);
         }
 
         readonly SettingsHolder settings;
